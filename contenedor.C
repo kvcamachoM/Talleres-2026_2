@@ -1,0 +1,155 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "contenedor.h"
+
+void inicializar_lista(ListaContenedores *lista) {
+    lista->cabeza = NULL;
+    lista->cola = NULL;
+    lista->siguiente_id = 1001; // Inicia los códigos en 1001 para mayor claridad operativa
+    lista->cantidad = 0;
+}
+
+int insertar_contenedor(ListaContenedores *lista, float tara, float peso_carga, float costo) {
+    Contenedor *nuevo = (Contenedor*) malloc(sizeof(Contenedor));
+    if (nuevo == NULL) {
+        return -1; // Error crítico de asignación de memoria
+    }
+
+    // Asignación de datos y cálculo automático del peso total
+    nuevo->id = lista->siguiente_id++;
+    nuevo->tara = tara;
+    nuevo->peso_carga = peso_carga;
+    nuevo->peso_total = tara + peso_carga;
+    nuevo->costo = costo;
+    nuevo->siguiente = NULL;
+
+    // Enlace bidireccional al final de la lista
+    if (lista->cabeza == NULL) {
+        // Caso 1: La lista está vacía
+        nuevo->anterior = NULL;
+        lista->cabeza = nuevo;
+        lista->cola = nuevo;
+    } else {
+        // Caso 2: Ya existen elementos; se enlaza después de la cola actual
+        nuevo->anterior = lista->cola;
+        lista->cola->siguiente = nuevo;
+        lista->cola = nuevo;
+    }
+
+    lista->cantidad++;
+    return nuevo->id;
+}
+
+Contenedor* buscar_contenedor(const ListaContenedores *lista, int id) {
+    Contenedor *actual = lista->cabeza;
+    while (actual != NULL) {
+        if (actual->id == id) {
+            return actual;
+        }
+        actual = actual->siguiente;
+    }
+    return NULL;
+}
+
+bool actualizar_contenedor(ListaContenedores *lista, int id, float nueva_tara, float nueva_carga, float nuevo_costo) {
+    Contenedor *objetivo = buscar_contenedor(lista, id);
+    if (objetivo == NULL) {
+        return false;
+    }
+
+    objetivo->tara = nueva_tara;
+    objetivo->peso_carga = nueva_carga;
+    objetivo->peso_total = nueva_tara + nueva_carga; // Recálculo automático
+    objetivo->costo = nuevo_costo;
+    return true;
+}
+
+bool eliminar_contenedor(ListaContenedores *lista, int id) {
+    Contenedor *objetivo = buscar_contenedor(lista, id);
+    if (objetivo == NULL) {
+        return false;
+    }
+
+    // Reajuste del enlace izquierdo (anterior)
+    if (objetivo->anterior != NULL) {
+        objetivo->anterior->siguiente = objetivo->siguiente;
+    } else {
+        // El objetivo era la cabeza
+        lista->cabeza = objetivo->siguiente;
+    }
+
+    // Reajuste del enlace derecho (siguiente)
+    if (objetivo->siguiente != NULL) {
+        objetivo->siguiente->anterior = objetivo->anterior;
+    } else {
+        // El objetivo era la cola
+        lista->cola = objetivo->anterior;
+    }
+
+    // Liberación limpia de memoria
+    free(objetivo);
+    lista->cantidad--;
+    return true;
+}
+
+void mostrar_detalle_contenedor(const Contenedor *c) {
+    if (c == NULL) return;
+    printf("\---\n");
+    printf(" ID Contenedor : #%d\n", c->id);
+    printf(" Peso Vacio (Tara): %.2f ton\n", c->tara);
+    printf(" Peso de Carga    : %.2f ton\n", c->peso_carga);
+    printf(" Peso Total       : %.2f ton\n", c->peso_total);
+    printf(" Costo Asociado   : $%.2f\n", c->costo);
+    printf("--\n");
+}
+
+void listar_adelante(const ListaContenedores *lista) {
+    if (lista->cabeza == NULL) {
+        printf("\n[!] El patio logistico esta vacio.\n");
+        return;
+    }
+
+    printf("\n=== RECORRIDO HACIA ADELANTE (Ingreso -> Ultimo) [Total: %d] ===\n", lista->cantidad);
+    printf("%-6s | %-11s | %-11s | %-11s | %-12s\n", "ID", "Tara (t)", "Carga (t)", "Total (t)", "Costo ($)");
+    printf("--\n");
+
+    Contenedor *actual = lista->cabeza;
+    while (actual != NULL) {
+        printf("#%-5d | %-11.2f | %-11.2f | %-11.2f | $%-11.2f\n",
+               actual->id, actual->tara, actual->peso_carga, actual->peso_total, actual->costo);
+        actual = actual->siguiente;
+    }
+}
+
+void listar_atras(const ListaContenedores *lista) {
+    if (lista->cola == NULL) {
+        printf("\n[!] El patio logistico esta vacio.\n");
+        return;
+    }
+
+    printf("\n=== RECORRIDO HACIA ATRAS (Ultimo -> Ingreso) [Total: %d] ===\n", lista->cantidad);
+    printf("%-6s | %-11s | %-11s | %-11s | %-12s\n", "ID", "Tara (t)", "Carga (t)", "Total (t)", "Costo ($)");
+    printf("--\n");
+
+    Contenedor *actual = lista->cola;
+    while (actual != NULL) {
+        printf("#%-5d | %-11.2f | %-11.2f | %-11.2f | $%-11.2f\n",
+               actual->id, actual->tara, actual->peso_carga, actual->peso_total, actual->costo);
+        actual = actual->anterior;
+    }
+}
+
+void liberar_toda_la_memoria(ListaContenedores *lista) {
+    Contenedor *actual = lista->cabeza;
+    Contenedor *siguiente_nodo;
+
+    while (actual != NULL) {
+        siguiente_nodo = actual->siguiente;
+        free(actual);
+        actual = siguiente_nodo;
+    }
+
+    lista->cabeza = NULL;
+    lista->cola = NULL;
+    lista->cantidad = 0;
+}
